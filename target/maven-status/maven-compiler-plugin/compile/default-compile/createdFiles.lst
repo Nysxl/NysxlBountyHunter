@@ -1,0 +1,4 @@
+org\Nysxl\BountySystem\Bounties\BountyManager.class
+org\Nysxl\BountySystem\BountyKillListener\BountyKillListener.class
+org\Nysxl\BountySystem\Bounties\Bounty.class
+org\Nysxl\BountySystem\NysxlBountySystem.class

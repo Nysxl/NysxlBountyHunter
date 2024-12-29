@@ -1,0 +1,21 @@
+name: NysxlBountySystem
+main: org.Nysxl.BountySystem.NysxlBountySystem
+version: 1.0-SNAPSHOT
+author: Nysxl
+description: A plugin for managing a bounty system with dependencies on NysxlServerUtils and Vault.
+
+depend:
+  - NysxlServerUtils
+  - Vault
+
+api-version: 1.20
+
+commands:
+  setBounty:
+    description: Set a bounty on a player.
+  setTax:
+    description: Set the bounty tax percentage.
+  getTaxes:
+    description: View total taxes collected.
+  activeBounties:
+    description: View active bounties.

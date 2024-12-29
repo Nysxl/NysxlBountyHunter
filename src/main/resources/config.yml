@@ -1,0 +1,5 @@
+bounty:
+  taxPercentage: 0.1
+  totalTaxesPaid: 0.0
+  minBounty: 300.0
+  claimAllBountiesOnKill: true
