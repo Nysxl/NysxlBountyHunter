@@ -3,6 +3,7 @@ package org.Nysxl.BountySystem.Bounties;
 import org.Nysxl.BountySystem.NysxlBountySystem;
 import org.Nysxl.InventoryManager.DynamicButton;
 import org.Nysxl.InventoryManager.DynamicPagedInventoryHandler;
+import org.Nysxl.NysxlServerUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -17,8 +18,6 @@ public class BountyManager {
 
     private static final long SAVE_DELAY_TICKS = 200L; // 60 seconds in ticks
     private final List<Bounty> activeBounties = new ArrayList<>();
-    private double taxPercentage;
-    private double totalTaxesPaid;
     private double minBounty;
     private boolean claimAllBountiesOnKill;
 
@@ -70,11 +69,10 @@ public class BountyManager {
             return;
         }
 
-        double taxed = bounty * taxPercentage;
+        double taxed = bounty * NysxlServerUtils.getEconomyManager().getTaxRate();
         double bountyAfterTax = bounty - taxed;
 
-        totalTaxesPaid += taxed;
-        saveTotalTaxesPaid();
+        NysxlServerUtils.getEconomyManager().addToAvailableTaxes(taxed);
 
         Bounty newBounty = new Bounty(player.getUniqueId(), target.getUniqueId(), bountyAfterTax);
         activeBounties.add(newBounty);
@@ -108,13 +106,6 @@ public class BountyManager {
         );
     }
 
-    private void saveTotalTaxesPaid() {
-        NysxlBountySystem.getConfigManager()
-                .getConfig("config")
-                .set("bounty.totalTaxesPaid", totalTaxesPaid);
-        NysxlBountySystem.getConfigManager().saveConfig("config");
-    }
-
     private List<Bounty> loadBountiesFromConfig() {
         return NysxlBountySystem.getConfigManager().loadObjects(
                 "config",
@@ -130,14 +121,6 @@ public class BountyManager {
     public void loadConfigs() {
         activeBounties.clear();
         activeBounties.addAll(loadBountiesFromConfig());
-    }
-
-    public void setTaxPercentage(double taxPercentage) {
-        this.taxPercentage = taxPercentage;
-    }
-
-    public double getTotalTaxesPaid() {
-        return totalTaxesPaid;
     }
 
     public List<Bounty> getActiveBounties() {

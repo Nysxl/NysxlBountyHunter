@@ -4,7 +4,8 @@ import org.Nysxl.BountySystem.Bounties.BountyManager;
 import org.Nysxl.BountySystem.BountyKillListener.BountyKillListener;
 import org.Nysxl.CommandManager.CommandRegistry;
 import org.Nysxl.InventoryManager.DynamicConfigManager;
-import org.Nysxl.Utils.Economy.Economy;
+import org.Nysxl.NysxlServerUtils;
+import org.Nysxl.Utils.Economy.EconomyManager;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -14,7 +15,7 @@ public class NysxlBountySystem extends JavaPlugin {
     private CommandRegistry commandRegistry;
     private static DynamicConfigManager configManager;
     private static NysxlBountySystem instance;
-    private static Economy economy;
+    private static EconomyManager economy;
     private BountyManager bountyManager;
 
     @Override
@@ -27,7 +28,7 @@ public class NysxlBountySystem extends JavaPlugin {
         commandRegistry = new CommandRegistry(this);
         registerBountyKillEvent();
 
-        economy = new Economy();
+        economy = NysxlServerUtils.getEconomyManager();
 
         registerCommands();
 
@@ -37,8 +38,6 @@ public class NysxlBountySystem extends JavaPlugin {
 
     private void registerCommands() {
         registerBountyCommand();
-        registerTaxCommand();
-        registerTaxViewerCommand();
         registerBountyMenuCommand();
     }
 
@@ -75,46 +74,6 @@ public class NysxlBountySystem extends JavaPlugin {
                 .register();
     }
 
-    private void registerTaxCommand() {
-        commandRegistry.createCommand("setTax")
-                .requirePlayer()
-                .check(sender -> sender instanceof Player, "Only players can use this command.")
-                .checkWithArgs((sender, args) -> {
-                    if (args == null || args.length < 1) {
-                        throw new IllegalArgumentException("Usage: /setTax <percentage>");
-                    }
-
-                    double newTax = Double.parseDouble(args[0]);
-                    if (newTax < 0 || newTax > 1) {
-                        throw new IllegalArgumentException("Tax percentage must be between 0 and 1.");
-                    }
-                }, "Invalid arguments.")
-                .onFallback((sender, partial) -> {
-                    sender.sendMessage(ChatColor.RED + "Usage: /setTax <percentage>");
-                })
-                .onExecute((sender, args) -> {
-                    try {
-                        double newTax = Double.parseDouble(args[0]);
-                        bountyManager.setTaxPercentage(newTax);
-                        sender.sendMessage(ChatColor.GREEN + "Tax percentage updated to " + (newTax * 100) + "%.");
-                    } catch (NumberFormatException e) {
-                        sender.sendMessage(ChatColor.RED + "Invalid number format.");
-                    }
-                })
-                .register();
-    }
-
-    private void registerTaxViewerCommand() {
-        commandRegistry.createCommand("getTaxes")
-                .requirePlayer()
-                .withPermission("bounty.gettaxes")
-                .onExecute((sender, args) -> {
-                    double totalTaxes = bountyManager.getTotalTaxesPaid();
-                    sender.sendMessage(ChatColor.GREEN + "Total taxes collected so far: " + totalTaxes);
-                })
-                .register();
-    }
-
     private void registerBountyMenuCommand() {
         commandRegistry.createCommand("activeBounties")
                 .requirePlayer()
@@ -145,8 +104,8 @@ public class NysxlBountySystem extends JavaPlugin {
         }
     }
 
-    public static Economy getEconomy() {
-        return economy;
+    public static EconomyManager getEconomy() {
+        return NysxlServerUtils.getEconomyManager();
     }
 
     private void registerBountyKillEvent() {
