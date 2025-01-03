@@ -2,89 +2,96 @@ package org.Nysxl.BountySystem;
 
 import org.Nysxl.BountySystem.Bounties.BountyManager;
 import org.Nysxl.BountySystem.BountyKillListener.BountyKillListener;
-import org.Nysxl.CommandManager.CommandRegistry;
-import org.Nysxl.InventoryManager.DynamicConfigManager;
+import org.Nysxl.CommandManager.CommandBuilder;
+import org.Nysxl.CommandManager.SubCommandBuilder;
+import org.Nysxl.DynamicConfigManager.DynamicConfigManager;
 import org.Nysxl.NysxlServerUtils;
 import org.Nysxl.Utils.Economy.EconomyManager;
-import org.bukkit.ChatColor;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class NysxlBountySystem extends JavaPlugin {
 
-    private CommandRegistry commandRegistry;
     private static DynamicConfigManager configManager;
     private static NysxlBountySystem instance;
     private static EconomyManager economy;
-    private BountyManager bountyManager;
+    private static BountyManager bountyManager;
 
     @Override
     public void onEnable() {
         instance = this;
 
         registerConfigManager();
-        checkEconomy();
-
-        commandRegistry = new CommandRegistry(this);
-        registerBountyKillEvent();
-
-        economy = NysxlServerUtils.getEconomyManager();
-
-        registerCommands();
 
         bountyManager = new BountyManager();
         bountyManager.loadConfigs();
+
+        checkEconomy();
+
+        economy = NysxlServerUtils.getEconomyManager();
+
+
+        BountyKillListener bountyKillListener = new BountyKillListener();
+        getServer().getPluginManager().registerEvents(bountyKillListener, this);
+
+        registerCommands();
     }
 
-    private void registerCommands() {
-        registerBountyCommand();
-        registerBountyMenuCommand();
-    }
+    public void registerCommands() {
+        CommandBuilder bountyCommand = new CommandBuilder(this)
+                .setName("bounty")
+                .setUsageMessage("Usage: /bounty open or /bounty set <player> <amount>");
 
-    private void registerBountyCommand() {
-        commandRegistry.createCommand("setBounty")
-                .requirePlayer()
-                .check(sender -> sender instanceof Player, "Only players can use this command.")
-                .checkWithArgs((sender, args) -> {
-                    if (args == null || args.length < 2) {
-                        throw new IllegalArgumentException("Usage: /setBounty <player> <amount>");
+        // Set bounty command
+        SubCommandBuilder setBountyCommand = new SubCommandBuilder(bountyCommand)
+                .setName("set")
+                .addPermission("bounty.set")
+                .usage(0, String.class, () -> Bukkit.getOnlinePlayers().stream()
+                        .map(Player::getName)
+                        .collect(Collectors.toList()))
+                .usage(1, Integer.class, List.of("<amount>")) // Assuming amounts are integers
+                .setPlayerExecutor((player, context) -> {
+                    List<String> args = context.getArgs();
+                    if (args.size() < 2) {
+                        player.sendMessage("Usage: /bounty set <playername> <amount>");
+                        return;
                     }
-                    Player player = (Player) sender;
-                    Player target = player.getServer().getPlayer(args[0]);
-                    if (target == null || target.equals(player)) {
-                        throw new IllegalArgumentException("You cannot place a bounty on yourself or a non-existent player.");
-                    }
-                }, "Invalid arguments.")
-                .onFallback((sender, partial) -> {
-                    sender.sendMessage(ChatColor.RED + "Usage: /setBounty <player> <amount>");
-                })
-                .onExecute((sender, args) -> {
-                    Player player = (Player) sender;
-                    double bountyAmount;
-                    try {
-                        bountyAmount = Double.parseDouble(args[1]);
-                    } catch (NumberFormatException e) {
-                        player.sendMessage(ChatColor.RED + "Invalid bounty amount. Please enter a valid number.");
+                    Player targetPlayer = Bukkit.getPlayer(args.get(0));
+
+                    if(targetPlayer == null){
+                        player.sendMessage("Player not found.");
                         return;
                     }
 
-                    Player target = player.getServer().getPlayer(args[0]);
-                    bountyManager.setBounty(player, target, bountyAmount);
+                    String amountStr = args.get(1);
+                    try {
+                        int amount = Integer.parseInt(amountStr);
+                        bountyManager.setBounty(player, targetPlayer, amount);
+                    } catch (NumberFormatException e) {
+                        player.sendMessage("Amount must be a valid number.");
+                    }
                 })
-                .register();
-    }
+                .setConsoleExecutor((sender, context) -> {
+                    sender.sendMessage("This command can only be executed by a player.");
+                });
 
-    private void registerBountyMenuCommand() {
-        commandRegistry.createCommand("activeBounties")
-                .requirePlayer()
-                .check(sender -> sender instanceof Player, "Only players can use this command.")
-                .onFallback((sender, partial) -> {
-                    sender.sendMessage(ChatColor.RED + "Usage: /activeBounties");
-                })
-                .onExecute((sender, args) -> {
-                    Player player = (Player) sender;
+        // Open bounty command
+        SubCommandBuilder openBountyCommand = new SubCommandBuilder(bountyCommand)
+                .setName("open")
+                .addPermission("bounty.open")
+                .setPlayerExecutor((player, context) -> {
                     bountyManager.openActiveBounties(player);
-                })
+                    player.sendMessage("Opening bounty GUI...");
+                });
+
+        // Register the main command with the plugin
+        bountyCommand
+                .addSubCommand(openBountyCommand)
+                .addSubCommand(setBountyCommand)
                 .register();
     }
 
@@ -108,11 +115,11 @@ public class NysxlBountySystem extends JavaPlugin {
         return NysxlServerUtils.getEconomyManager();
     }
 
-    private void registerBountyKillEvent() {
-        new BountyKillListener(bountyManager).registerEvents(this);
-    }
-
     public static NysxlBountySystem getInstance() {
         return instance;
+    }
+
+    public static BountyManager getBountyManager() {
+        return bountyManager;
     }
 }

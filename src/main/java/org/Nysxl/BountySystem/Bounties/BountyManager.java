@@ -25,6 +25,11 @@ public class BountyManager {
 
     public BountyManager() {
         loadConfigs();
+        loadClaimAllBountiesOnKillConfig();
+    }
+
+    private void loadClaimAllBountiesOnKillConfig() {
+        this.claimAllBountiesOnKill = NysxlBountySystem.getConfigManager().getConfig("config").getBoolean("bounty.claimAllBountiesOnKill", false);
     }
 
     public void openActiveBounties(Player player) {
@@ -54,6 +59,11 @@ public class BountyManager {
     }
 
     public void setBounty(Player player, Player target, double bounty) {
+        if(player.equals(target)){
+            player.sendMessage(ChatColor.RED + "You can't place a bounty on yourself.");
+            return;
+        }
+
         if (bounty <= 0) {
             player.sendMessage(ChatColor.RED + "Bounty amount must be greater than 0.");
             return;
@@ -64,7 +74,7 @@ public class BountyManager {
             return;
         }
 
-        if (!NysxlBountySystem.getEconomy().withdrawBalance(player, bounty)) {
+        if (!NysxlServerUtils.getEconomyManager().withdrawBalance(player, bounty)) {
             player.sendMessage(ChatColor.RED + "Insufficient balance.");
             return;
         }

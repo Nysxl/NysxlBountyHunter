@@ -16,11 +16,6 @@ import java.util.Optional;
 
 public class BountyKillListener implements Listener {
 
-    private final BountyManager bountyManager;
-
-    public BountyKillListener(BountyManager bountyManager) {
-        this.bountyManager = bountyManager;
-    }
 
     @EventHandler
     public void onPlayerKill(PlayerDeathEvent event) {
@@ -31,9 +26,9 @@ public class BountyKillListener implements Listener {
         Player killer = victim.getKiller();
         if (killer == null || !(killer instanceof Player)) return;
 
-        List<Bounty> activeBounties = bountyManager.getActiveBounties();
+        List<Bounty> activeBounties = NysxlBountySystem.getBountyManager().getActiveBounties();
 
-        if (bountyManager.isClaimAllBountiesOnKill()) {
+        if (NysxlBountySystem.getBountyManager().isClaimAllBountiesOnKill()) {
             // Filter and collect all bounties for the victim
             List<Bounty> claimedBounties = activeBounties.stream()
                     .filter(b -> b.target().equals(victim.getUniqueId()))
@@ -59,7 +54,7 @@ public class BountyKillListener implements Listener {
                 }
 
                 // Save updated bounties
-                bountyManager.saveBountiesToConfig();
+                NysxlBountySystem.getBountyManager().saveBountiesToConfig();
             }
         } else {
             // Claim only the first bounty for the victim
@@ -81,7 +76,7 @@ public class BountyKillListener implements Listener {
                 }
 
                 // Save updated bounties
-                bountyManager.saveBountiesToConfig();
+                NysxlBountySystem.getBountyManager().saveBountiesToConfig();
             });
         }
     }
